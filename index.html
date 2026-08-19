@@ -5,172 +5,197 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live Weather & Air Quality Dashboard</title>
   <style>
-    :root {
-      --bg-color: #f0f4f8;
-      --card-bg: #ffffff;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --primary: #2563eb;
-      --border-radius: 12px;
-    }
+  :root {
+    --bg-color: #f0f4f8;
+    --card-bg: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --primary: #2563eb;
+    --border-radius: 12px;
+  }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    }
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 12px;
+  }
 
-    .app-container {
-      background: var(--card-bg);
+  .app-container {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 480px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    padding: min(24px, 4vw);
+    overflow: hidden; /* Prevents child elements from bleeding out */
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  header h1 {
+    font-size: clamp(1.2rem, 5vw, 1.5rem);
+    color: var(--text-main);
+  }
+
+  /* Responsive Search Box */
+  .search-box {
+    display: flex;
+    flex-wrap: wrap; /* Allows search button to drop below input if space is tight */
+    gap: 8px;
+    margin-bottom: 12px;
+    width: 100%;
+  }
+
+  input[type="text"] {
+    flex: 1 1 140px; /* Allows input to shrink gracefully */
+    width: 100%;
+    min-width: 0;   /* Fixes flexbox text overflow bug */
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--primary);
+  }
+
+  .search-box button {
+    flex: 0 0 auto;
+  }
+
+  button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  button:hover {
+    background-color: #1d4ed8;
+  }
+
+  .geo-btn {
+    width: 100%;
+    background-color: #e2e8f0;
+    color: var(--text-main);
+    margin-bottom: 20px;
+  }
+
+  .geo-btn:hover {
+    background-color: #cbd5e1;
+  }
+
+  .status-msg {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 15px;
+  }
+
+  .dashboard {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .location-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .umbrella-card {
+    padding: 14px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .umbrella-yes {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+  }
+
+  .umbrella-no {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+  }
+
+  /* Responsive Grid for Temp & Humidity */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+    width: 100%;
+  }
+
+  .metric-card {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    padding: 12px;
+    text-align: center;
+    min-width: 0; /* Prevents overflow inside grid items */
+  }
+
+  .metric-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+
+  .aqi-badge {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  /* Mobile Adjustments for Extremely Small Screens (< 320px) */
+  @media (max-width: 320px) {
+    .search-box button {
       width: 100%;
-      max-width: 480px;
-      border-radius: var(--border-radius);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-      padding: 24px;
     }
-
-    header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    header h1 {
-      font-size: 1.5rem;
-      color: var(--text-main);
-    }
-
-    .search-box {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    input[type="text"] {
-      flex: 1;
-      padding: 12px 16px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 1rem;
-      outline: none;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--primary);
-    }
-
-    button {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px 18px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background-color: #1d4ed8;
-    }
-
-    .geo-btn {
-      width: 100%;
-      background-color: #e2e8f0;
-      color: var(--text-main);
-      margin-bottom: 20px;
-    }
-
-    .geo-btn:hover {
-      background-color: #cbd5e1;
-    }
-
-    .status-msg {
-      text-align: center;
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      margin-bottom: 15px;
-    }
-
-    .dashboard {
-      display: none;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .location-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      text-align: center;
-    }
-
-    /* Requirement Cards */
-    .umbrella-card {
-      padding: 16px;
-      border-radius: var(--border-radius);
-      text-align: center;
-      font-weight: 600;
-      font-size: 1.05rem;
-    }
-
-    .umbrella-yes {
-      background-color: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #fca5a5;
-    }
-
-    .umbrella-no {
-      background-color: #dcfce7;
-      color: #166534;
-      border: 1px solid #86efac;
-    }
-
     .metrics-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      grid-template-columns: 1fr;
     }
-
-    .metric-card {
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: var(--border-radius);
-      padding: 16px;
-      text-align: center;
-    }
-
-    .metric-label {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-    }
-
-    .metric-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-
-    .aqi-badge {
-      display: inline-block;
-      margin-top: 4px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
 
