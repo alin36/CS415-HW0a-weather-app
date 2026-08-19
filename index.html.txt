@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Weather & Air Quality Dashboard</title>
+  <style>
+    :root {
+      --bg-color: #f0f4f8;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --border-radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .app-container {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 480px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      color: var(--text-main);
+    }
+
+    .search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    .geo-btn {
+      width: 100%;
+      background-color: #e2e8f0;
+      color: var(--text-main);
+      margin-bottom: 20px;
+    }
+
+    .geo-btn:hover {
+      background-color: #cbd5e1;
+    }
+
+    .status-msg {
+      text-align: center;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 15px;
+    }
+
+    .dashboard {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .location-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* Requirement Cards */
+    .umbrella-card {
+      padding: 16px;
+      border-radius: var(--border-radius);
+      text-align: center;
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+
+    .umbrella-yes {
+      background-color: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .umbrella-no {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .metric-card {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--border-radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .metric-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .aqi-badge {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <header>
+      <h1>Live Weather & Air Quality</h1>
+    </header>
+
+    <div class="search-box">
+      <input type="text" id="cityInput" placeholder="Enter city (e.g., Chicago)" />
+      <button onclick="fetchByCity()">Search</button>
+    </div>
+    
+    <button class="geo-btn" onclick="fetchByLocation()">📍 Use My Current Location</button>
+
+    <div id="status" class="status-msg">Enter a city to load weather data.</div>
+
+    <div id="dashboard" class="dashboard">
+      <div id="locationName" class="location-title">--</div>
+
+      <!-- (2) Raincoat / Umbrella Check -->
+      <div id="umbrellaCard" class="umbrella-card">--</div>
+
+      <div class="metrics-grid">
+        <!-- (1) Temperature -->
+        <div class="metric-card">
+          <div class="metric-label">Temperature</div>
+          <div id="tempVal" class="metric-value">--</div>
+        </div>
+
+        <!-- (3) Humidity -->
+        <div class="metric-card">
+          <div class="metric-label">Humidity</div>
+          <div id="humidityVal" class="metric-value">--</div>
+        </div>
+      </div>
+
+      <!-- (4) Air Quality -->
+      <div class="metric-card">
+        <div class="metric-label">Air Quality (US AQI)</div>
+        <div id="aqiVal" class="metric-value">--</div>
+        <div id="aqiStatus" class="aqi-badge">--</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const dashboardEl = document.getElementById('dashboard');
+
+    async function fetchByCity() {
+      const city = document.getElementById('cityInput').value.trim();
+      if (!city) return alert('Please enter a city name.');
+
+      statusEl.textContent = 'Searching location...';
+      dashboardEl.style.display = 'none';
+
+      try {
+        // Geocoding API to resolve city name to coordinates
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+        const geoData = await geoRes.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+          statusEl.textContent = 'City not found. Please try another name.';
+          return;
+        }
+
+        const { latitude, longitude, name, admin1, country } = geoData.results[0];
+        const locationLabel = `${name}${admin1 ? ', ' + admin1 : ''}, ${country}`;
+        loadWeatherData(latitude, longitude, locationLabel);
+
+      } catch (err) {
+        statusEl.textContent = 'Error fetching geolocation data.';
+        console.error(err);
+      }
+    }
+
+    function fetchByLocation() {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+      }
+
+      statusEl.textContent = 'Detecting location...';
+      dashboardEl.style.display = 'none';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          loadWeatherData(pos.coords.latitude, pos.coords.longitude, 'Your Location');
+        },
+        (err) => {
+          statusEl.textContent = 'Location access denied or unavailable.';
+        }
+      );
+    }
+
+    async function loadWeatherData(lat, lon, locationLabel) {
+      statusEl.textContent = 'Fetching weather and air quality...';
+
+      try {
+        // Fetch Weather Data (Temp in °F, Humidity, Rain/Weather Code)
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code&temperature_unit=fahrenheit`;
+        const weatherRes = await fetch(weatherUrl);
+        const weatherData = await weatherRes.json();
+
+        // Fetch Air Quality Data (US AQI)
+        const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`;
+        const aqiRes = await fetch(aqiUrl);
+        const aqiData = await aqiRes.json();
+
+        // Render Data
+        updateUI(locationLabel, weatherData.current, aqiData.current);
+        statusEl.textContent = '';
+        dashboardEl.style.display = 'flex';
+
+      } catch (err) {
+        statusEl.textContent = 'Error fetching weather data. Please try again.';
+        console.error(err);
+      }
+    }
+
+    function updateUI(locationName, weather, air) {
+      document.getElementById('locationName').textContent = locationName;
+
+      // 1. Current Temperature
+      document.getElementById('tempVal').textContent = `${Math.round(weather.temperature_2m)}°F`;
+
+      // 3. Humidity Level
+      document.getElementById('humidityVal').textContent = `${weather.relative_humidity_2m}%`;
+
+      // 2. Umbrella / Raincoat Recommendation
+      // WMO codes >= 51 indicate drizzle, rain, freezing rain, showers, or thunderstorms
+      const isRaining = weather.precipitation > 0 || weather.weather_code >= 51;
+      const umbrellaEl = document.getElementById('umbrellaCard');
+      
+      if (isRaining) {
+        umbrellaEl.textContent = '☔ Rain likely — Bring a raincoat or umbrella!';
+        umbrellaEl.className = 'umbrella-card umbrella-yes';
+      } else {
+        umbrellaEl.textContent = '☀️ No raincoat needed today!';
+        umbrellaEl.className = 'umbrella-card umbrella-no';
+      }
+
+      // 4. Air Quality (US AQI)
+      const aqi = air ? air.us_aqi : null;
+      const aqiValEl = document.getElementById('aqiVal');
+      const aqiStatusEl = document.getElementById('aqiStatus');
+
+      if (aqi !== null && aqi !== undefined) {
+        aqiValEl.textContent = aqi;
+        
+        let label = 'Good';
+        let bg = '#dcfce7';
+        let color = '#166534';
+
+        if (aqi > 50 && aqi <= 100) {
+          label = 'Moderate';
+          bg = '#fef9c3';
+          color = '#854d0e';
+        } else if (aqi > 100 && aqi <= 150) {
+          label = 'Unhealthy (Sensitive)';
+          bg = '#ffedd5';
+          color = '#9a3412';
+        } else if (aqi > 150) {
+          label = 'Unhealthy';
+          bg = '#fee2e2';
+          color = '#991b1b';
+        }
+
+        aqiStatusEl.textContent = label;
+        aqiStatusEl.style.backgroundColor = bg;
+        aqiStatusEl.style.color = color;
+      } else {
+        aqiValEl.textContent = 'N/A';
+        aqiStatusEl.textContent = 'Data unavailable';
+      }
+    }
+  </script>
+</body>
+</html>
